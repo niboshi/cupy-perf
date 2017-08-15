@@ -6,6 +6,26 @@ import cupy
 import numpy
 
 
+class PerfCase:
+    def __init__(self, func):
+        self.func = func
+        self.n = 10000
+        self.n_warmup = 10
+
+
+def attr(**kwargs):
+    def decorator(case):
+        if isinstance(case, PerfCase):
+            case_ = case
+        else:
+            case_ = PerfCase(case)
+
+        for key, val in kwargs.items():
+            setattr(case_, key, val)
+        return case_
+    return decorator
+
+
 class PerfCaseResult(object):
     def __init__(self, name, ts):
         self.name = name
@@ -33,11 +53,19 @@ class PerfCases(object):
         cases = []
         for name in dir(self):
             if name.startswith(prefix):
-                f = getattr(self, name)
-                if callable(f):
-                    _, linum = inspect.getsourcelines(f)
-                    name = name[len(prefix):]
-                    cases.append((linum, name, f))
+                obj = getattr(self, name)
+                if isinstance(obj, PerfCase):
+                    case = obj
+                    func = obj.func
+                elif callable(obj):
+                    case = PerfCase(obj.__func__)
+                    func = obj
+                else:
+                    continue
+
+                name = name[len(prefix):]
+                _, linum = inspect.getsourcelines(func)
+                cases.append((linum, name, case))
 
         cases = sorted(cases)
         for linum, name, f in cases:
@@ -47,22 +75,31 @@ class PerfCases(object):
         cases = list(self.get_cases())
         for case_name, case in cases:
             self.setUp()
+
+            if isinstance(case, PerfCase):
+                pass
+            else:
+                case = PerfCase(case)
             result = self._run_perf(case_name, case)
             self.tearDown()
             print(str(result))
 
-    def _run_perf(self, name, func, n=10000, n_warmup=10):
+    def _run_perf(self, name, case):
+        func = case.func
+        n = case.n
+        n_warmup = case.n_warmup
+
         ts = numpy.empty((n,), dtype=numpy.float64)
         ev = self._ev
 
         for i in range(n_warmup):
-            func()
+            func(self)
 
         for i in range(n):
             ev.synchronize()
             t1 = time.perf_counter()
 
-            func()
+            func(self)
 
             t2 = time.perf_counter()
             ev.synchronize()
