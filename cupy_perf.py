@@ -31,16 +31,28 @@ class PerfCaseResult(object):
         self.name = name
         self.ts = ts
 
+    def cpu_mean(self):
+        return self.ts[0].mean()
+
+    def cpu_std(self):
+        return self.ts[0].std()
+
+    def gpu_mean(self):
+        return self.ts[1].mean()
+
+    def gpu_std(self):
+        return self.ts[1].std()
+
     def __str__(self):
-        return '{:<20s}: {:.03f} us   +/- {:.03f} us'.format(
+        return '{:<20s}: {:.03f} us   +/- {:.03f} us      {:.03f} us   +/- {:.03f} us'.format(
             self.name,
-            self.ts.mean() * 1e6,
-            self.ts.std() * 1e6)
+            self.cpu_mean() * 1e6,
+            self.cpu_std() * 1e6,
+            self.gpu_mean() * 1e6,
+            self.gpu_std() * 1e6)
 
 
 class PerfCases(object):
-    def __init__(self):
-        self._ev = cupy.cuda.stream.Event()
 
     def setUp(self):
         pass
@@ -89,21 +101,24 @@ class PerfCases(object):
         n = case.n
         n_warmup = case.n_warmup
 
-        ts = numpy.empty((n,), dtype=numpy.float64)
-        ev = self._ev
+        ts = numpy.empty((2, n,), dtype=numpy.float64)
+        ev1 = cupy.cuda.stream.Event()
+        ev2 = cupy.cuda.stream.Event()
 
         for i in range(n_warmup):
             func(self)
 
         for i in range(n):
-            ev.synchronize()
+            ev1.record()
             t1 = time.perf_counter()
 
             func(self)
 
             t2 = time.perf_counter()
-            ev.synchronize()
-            ts[i] = t2 - t1
+            ev2.record()
+            ev2.synchronize()
+            ts[0, i] = t2 - t1
+            ts[1, i] = cupy.cuda.get_elapsed_time(ev1, ev2) * 1e-3
 
         return PerfCaseResult(name, ts)
 
