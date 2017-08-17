@@ -6,11 +6,28 @@ import cupy
 import numpy
 
 
+_line_prof = None
+
+
+def _init_line_profiler():
+    global _line_prof
+    import line_profiler
+    if _line_prof is None:
+        _line_prof = line_profiler.LineProfiler()
+
+
+def get_line_profiler():
+    return _line_prof
+
+
 class PerfCase:
+    enable_line_profiler = False
+
     def __init__(self, func):
         self.func = func
         self.n = 10000
         self.n_warmup = 10
+        self.exclude_others = False
 
 
 def attr(**kwargs):
@@ -63,6 +80,8 @@ class PerfCases(object):
     def get_cases(self):
         prefix = 'perf_'
         cases = []
+        has_exclude_others = False
+
         for name in dir(self):
             if name.startswith(prefix):
                 obj = getattr(self, name)
@@ -75,6 +94,16 @@ class PerfCases(object):
                 else:
                     continue
 
+                # If this case has `exclude_others` flag, clear previous cases
+                # with no `exclude_others` flag. Then after this point, only
+                # cases with the flag will be collected.
+                if case.exclude_others:
+                    if not has_exclude_others:
+                        cases = []
+                        has_exclude_others = True
+                elif has_exclude_others:
+                    continue
+
                 name = name[len(prefix):]
                 _, linum = inspect.getsourcelines(func)
                 cases.append((linum, name, case))
@@ -84,6 +113,9 @@ class PerfCases(object):
             yield name, f
 
     def run(self):
+        if self.enable_line_profiler:
+            _init_line_profiler()
+
         cases = list(self.get_cases())
         for case_name, case in cases:
             self.setUp()
@@ -108,8 +140,12 @@ class PerfCases(object):
         for i in range(n_warmup):
             func(self)
 
+        if self.enable_line_profiler:
+            _line_prof.enable()
+
         for i in range(n):
             ev1.record()
+            ev2.synchronize()
             t1 = time.perf_counter()
 
             func(self)
@@ -119,6 +155,9 @@ class PerfCases(object):
             ev2.synchronize()
             ts[0, i] = t2 - t1
             ts[1, i] = cupy.cuda.get_elapsed_time(ev1, ev2) * 1e-3
+
+        if self.enable_line_profiler:
+            _line_prof.disable()
 
         return PerfCaseResult(name, ts)
 
