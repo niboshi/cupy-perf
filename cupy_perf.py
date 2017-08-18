@@ -61,7 +61,7 @@ class PerfCaseResult(object):
         return self.ts[1].std()
 
     def __str__(self):
-        return '{:<20s}: {:.03f} us   +/- {:.03f} us      {:.03f} us   +/- {:.03f} us'.format(
+        return '{:<20s}: {:9.03f} us   +/-{:6.03f} us  {:9.03f} us   +/-{:6.03f} us'.format(
             self.name,
             self.cpu_mean() * 1e6,
             self.cpu_std() * 1e6,
