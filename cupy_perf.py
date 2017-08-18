@@ -145,7 +145,7 @@ class PerfCases(object):
 
         for i in range(n):
             ev1.record()
-            ev2.synchronize()
+            ev1.synchronize()
             t1 = time.perf_counter()
 
             func(self)
@@ -153,8 +153,10 @@ class PerfCases(object):
             t2 = time.perf_counter()
             ev2.record()
             ev2.synchronize()
-            ts[0, i] = t2 - t1
-            ts[1, i] = cupy.cuda.get_elapsed_time(ev1, ev2) * 1e-3
+            cpu_time = t2 - t1
+            gpu_time = cupy.cuda.get_elapsed_time(ev1, ev2) * 1e-3
+            ts[0, i] = cpu_time
+            ts[1, i] = gpu_time
 
         if self.enable_line_profiler:
             _line_prof.disable()
