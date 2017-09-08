@@ -5,6 +5,8 @@ import cupy_perf
 
 
 class Perf1(cupy_perf.PerfCases):
+    enable_line_profiler = False
+
     def setUp(self):
         shape_tiny = (2, 1, 2)
         shape_huge = (2000, 50, 100)
