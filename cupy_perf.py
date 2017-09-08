@@ -28,6 +28,7 @@ class PerfCase:
         self.n = 10000
         self.n_warmup = 10
         self.exclude_others = False
+        self.skip = False
 
 
 def attr(**kwargs):
@@ -92,6 +93,9 @@ class PerfCases(object):
                     case = PerfCase(obj.__func__)
                     func = obj
                 else:
+                    continue
+
+                if case.skip:
                     continue
 
                 # If this case has `exclude_others` flag, clear previous cases
