@@ -17,6 +17,7 @@ def _init_line_profiler():
 
 
 def get_line_profiler():
+    _init_line_profiler()
     return _line_prof
 
 
