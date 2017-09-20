@@ -170,6 +170,7 @@ class PerfCases(object):
 
 
 def run(module_name):
+    print(cupy)
     mod = sys.modules[module_name]
     classes = []
     for name, cls in inspect.getmembers(mod):
