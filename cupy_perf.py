@@ -22,8 +22,6 @@ def get_line_profiler():
 
 
 class PerfCase:
-    enable_line_profiler = False
-
     def __init__(self, func):
         self.func = func
         self.n = 10000
@@ -72,6 +70,8 @@ class PerfCaseResult(object):
 
 
 class PerfCases(object):
+
+    enable_line_profiler = False
 
     def setUp(self):
         pass
