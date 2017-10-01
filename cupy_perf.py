@@ -194,7 +194,7 @@ def run(module_name):
     mod = sys.modules[module_name]
     classes = []
     for name, cls in inspect.getmembers(mod):
-        if inspect.isclass(cls) and issubclass(cls, PerfCases):
+        if (not name.startswith('_')) and inspect.isclass(cls) and issubclass(cls, PerfCases):
             _, linum = inspect.getsourcelines(cls)
             classes.append((linum, cls))
 
