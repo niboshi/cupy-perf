@@ -6,7 +6,15 @@ import cupy
 import numpy
 
 
+_prof = None
 _line_prof = None
+
+
+def _init_profiler():
+    global _prof
+    import cProfile
+    if _prof is None:
+        _prof = cProfile.Profile()
 
 
 def _init_line_profiler():
@@ -14,6 +22,11 @@ def _init_line_profiler():
     import line_profiler
     if _line_prof is None:
         _line_prof = line_profiler.LineProfiler()
+
+
+def get_profiler():
+    _init_profiler()
+    return _prof
 
 
 def get_line_profiler():
@@ -71,6 +84,7 @@ class PerfCaseResult(object):
 
 class PerfCases(object):
 
+    enable_profiler = False
     enable_line_profiler = False
 
     def setUp(self):
@@ -118,6 +132,8 @@ class PerfCases(object):
             yield name, f
 
     def run(self):
+        if self.enable_profiler:
+            _init_profiler()
         if self.enable_line_profiler:
             _init_line_profiler()
 
@@ -147,6 +163,8 @@ class PerfCases(object):
 
         if self.enable_line_profiler:
             _line_prof.enable()
+        if self.enable_profiler:
+            _prof.enable()
 
         for i in range(n):
             ev1.record()
@@ -163,6 +181,8 @@ class PerfCases(object):
             ts[0, i] = cpu_time
             ts[1, i] = gpu_time
 
+        if self.enable_profiler:
+            _prof.disable()
         if self.enable_line_profiler:
             _line_prof.disable()
 
