@@ -61,11 +61,17 @@ class PerfCaseResult(object):
         self.name = name
         self.ts = ts
 
+    def cpu_min(self):
+        return self.ts[0].min()
+
     def cpu_mean(self):
         return self.ts[0].mean()
 
     def cpu_std(self):
         return self.ts[0].std()
+
+    def gpu_min(self):
+        return self.ts[1].min()
 
     def gpu_mean(self):
         return self.ts[1].mean()
@@ -74,12 +80,14 @@ class PerfCaseResult(object):
         return self.ts[1].std()
 
     def __str__(self):
-        return '{:<20s}: {:9.03f} us   +/-{:6.03f} us  {:9.03f} us   +/-{:6.03f} us'.format(
+        return '{:<20s}: {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us  {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us'.format(
             self.name,
             self.cpu_mean() * 1e6,
             self.cpu_std() * 1e6,
+            self.cpu_min() * 1e6,
             self.gpu_mean() * 1e6,
-            self.gpu_std() * 1e6)
+            self.gpu_std() * 1e6,
+            self.gpu_min() * 1e6)
 
 
 class PerfCases(object):
