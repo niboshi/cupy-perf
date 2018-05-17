@@ -1,3 +1,4 @@
+import argparse
 import inspect
 import sys
 import time
@@ -32,6 +33,13 @@ def get_profiler():
 def get_line_profiler():
     _init_line_profiler()
     return _line_prof
+
+
+def _parse_options(cmd_args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--show-gpu', action='store_true')
+    args = parser.parse_args(cmd_args)
+    return args
 
 
 class PerfCase:
@@ -79,15 +87,21 @@ class PerfCaseResult(object):
     def gpu_std(self):
         return self.ts[1].std()
 
-    def __str__(self):
-        return '{:<20s}: {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us  {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us'.format(
+    def to_str(self, show_gpu=False):
+        s = '{:<20s}: {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us'.format(
             self.name,
             self.cpu_mean() * 1e6,
             self.cpu_std() * 1e6,
-            self.cpu_min() * 1e6,
-            self.gpu_mean() * 1e6,
-            self.gpu_std() * 1e6,
-            self.gpu_min() * 1e6)
+            self.cpu_min() * 1e6)
+        if show_gpu:
+            s += '  {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us'.format(
+                self.gpu_mean() * 1e6,
+                self.gpu_std() * 1e6,
+                self.gpu_min() * 1e6)
+        return s
+
+    def __str__(self):
+        return self.to_str(show_gpu=True)
 
 
 class PerfCases(object):
@@ -140,6 +154,7 @@ class PerfCases(object):
             yield name, f
 
     def run(self):
+        args = _parse_options(sys.argv[1:])
         if self.enable_profiler:
             _init_profiler()
         if self.enable_line_profiler:
@@ -155,7 +170,7 @@ class PerfCases(object):
                 case = PerfCase(case)
             result = self._run_perf(case_name, case)
             self.tearDown()
-            print(str(result))
+            print(result.to_str(show_gpu=args.show_gpu))
 
     def _run_perf(self, name, case):
         func = case.func
