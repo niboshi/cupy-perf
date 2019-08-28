@@ -190,8 +190,8 @@ class PerfCases(object):
             _prof.enable()
 
         for i in range(n):
-            ev1.record()
             ev1.synchronize()
+            ev1.record()
             t1 = time.perf_counter()
 
             func(self)
