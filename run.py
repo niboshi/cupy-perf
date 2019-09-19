@@ -47,7 +47,7 @@ class Perf1(cupy_perf.PerfCases):
     def perf_userkernel_create(self):
         self._get_kernel()
 
-    def perf_userkenel(self):
+    def perf_userkernel(self):
         self.kernel(self.a, self.b, self.c)
 
     @cupy_perf.attr(n=10000)
