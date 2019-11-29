@@ -38,6 +38,7 @@ def get_line_profiler():
 def _parse_options(cmd_args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--show-gpu', action='store_true')
+    parser.add_argument('--format', choices=['table', 'csv'], default='table')
     args = parser.parse_args(cmd_args)
     return args
 
@@ -87,14 +88,23 @@ class PerfCaseResult(object):
     def gpu_std(self):
         return self.ts[1].std()
 
-    def to_str(self, show_gpu=False):
-        s = '{:<20s}: {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us'.format(
+    def to_str(self, show_gpu=False, format='table'):
+        if format == 'table':
+            template = '{:<20s}: {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us'
+            template_gpu = '  {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us'
+        elif format == 'csv':
+            template = '{:s},{:.03f},{:.03f},{:.03f}'
+            template_gpu = ',{:.03f},{:.03f},{:.03f}'
+        else:
+            assert ValueError(format)
+
+        s = template.format(
             self.name,
             self.cpu_mean() * 1e6,
             self.cpu_std() * 1e6,
             self.cpu_min() * 1e6)
         if show_gpu:
-            s += '  {:9.03f} us   +/-{:6.03f} (min:{:9.03f}) us'.format(
+            s += template_gpu.format(
                 self.gpu_mean() * 1e6,
                 self.gpu_std() * 1e6,
                 self.gpu_min() * 1e6)
@@ -170,7 +180,8 @@ class PerfCases(object):
                 case = PerfCase(case)
             result = self._run_perf(case_name, case)
             self.tearDown()
-            print(result.to_str(show_gpu=args.show_gpu))
+            sys.stdout.write('{}\n'.format(
+                result.to_str(show_gpu=args.show_gpu, format=args.format)))
 
     def _run_perf(self, name, case):
         func = case.func
@@ -213,7 +224,7 @@ class PerfCases(object):
 
 
 def run(module_name):
-    print(cupy)
+    sys.stderr.write('{}\n'.format(cupy))
     mod = sys.modules[module_name]
     classes = []
     for name, cls in inspect.getmembers(mod):
